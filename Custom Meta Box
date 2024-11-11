@@ -1,0 +1,73 @@
+<?php
+function add_custom_meta_box(){
+    add_meta_box("author", "Author", "author_func", "post", "normal", "default");
+    add_meta_box("gender", "Gender", "gender_func", "post", "normal", "default");
+    add_meta_box("hobbies", "Hobbies", "hobbies_func", "post", "normal", "default");
+    add_meta_box("motto", "Motto", "motto_func", "post", "normal", "default");
+}
+
+function author_func(){
+    global $post;
+    $name = get_post_meta($post->ID, 'author', true);
+    ?>
+    <input type="text" id="author" name="author" value="<?php echo esc_attr($name); ?>"/>
+    <?php
+}
+
+function gender_func(){
+    global $post;
+    $gender = get_post_meta($post->ID, 'gender', true);
+    ?>
+    <input type="radio" id="Male" name="gender" value="Male" <?php checked("Male", $gender); ?>>
+    <label for="Male">Male</label><br>
+    <input type="radio" id="Female" name="gender" value="Female" <?php checked("Female", $gender); ?>>
+    <label for="Female">Female</label><br>
+    <?php
+}
+
+function hobbies_func() {
+    global $post;
+    // Retrieve the saved hobbies as an array
+    $hobbies = (array) get_post_meta($post->ID, 'hobbies', true); // Ensure it's an array
+    
+    // Checkbox options
+    $options = ['Writing', 'Painting', 'Dancing', 'Hiking'];
+    
+    foreach ($options as $option) {
+        // Check if this option is checked
+        $checked = in_array($option, $hobbies) ? 'checked' : '';
+        ?>
+        <input type="checkbox" id="<?php echo esc_attr($option); ?>" name="hobbies[]" value="<?php echo esc_attr($option); ?>" <?php echo $checked; ?>>
+        <label for="<?php echo esc_attr($option); ?>"><?php echo esc_html($option); ?></label><br>
+        <?php
+    }
+}
+
+// Save all meta fields when the post is saved
+function save_custom_meta($post_id) {
+    // Verify the nonce and check permissions here if needed
+
+    if (isset($_POST['author'])) {
+        update_post_meta($post_id, 'author', sanitize_text_field($_POST["author"]));
+    }
+    
+    if (isset($_POST['gender'])) {
+        update_post_meta($post_id, 'gender', sanitize_text_field($_POST["gender"]));
+    }
+
+    if (isset($_POST['hobbies'])) {
+        // Save the selected hobbies as an array
+        $hobbies = array_map('sanitize_text_field', $_POST['hobbies']);
+        update_post_meta($post_id, 'hobbies', $hobbies);
+    } else {
+        // If no hobbies are selected, delete the meta field
+        delete_post_meta($post_id, 'hobbies');
+    }
+
+    if (isset($_POST['motto'])) {
+        update_post_meta($post_id, 'motto', sanitize_text_field($_POST["motto"]));
+    }
+}
+
+add_action('add_meta_boxes', 'add_custom_meta_box');
+add_action('save_post', 'save_custom_meta');
