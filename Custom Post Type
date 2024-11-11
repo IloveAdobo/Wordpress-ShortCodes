@@ -1,0 +1,161 @@
+<?php
+function books(){
+	register_post_type('books',
+					   array(
+					   'labels' => array(
+						   		'name' => __('Books'),
+						   		'singular_name' => __('Book')
+					   					),
+						   		'public' => true,
+						   		'has_archive' => true,
+						   		'supports' => array('title', 'editor', 'thumbnail'),
+						   		'rewrite' => array('slug' => 'books')
+					   		)
+					  );
+}
+
+add_action('init', 'books');
+
+function add_books_meta_boxes(){
+	add_meta_box('books_meta', 'Book Details', 'books_meta_callback', 'books', 'normal', 'default');
+}
+
+add_action('add_meta_boxes', 'add_books_meta_boxes');
+
+function books_meta_callback($post){
+	wp_nonce_field('books_meta_box', 'books_meta_box_nonce');
+	
+	$author = get_post_meta($post->ID, 'author', true);
+	$gender = get_post_meta($post->ID, 'gender', true);
+	$hobbies = get_post_meta($post->ID, 'hobbies', true);
+	$motto = get_post_meta($post->ID, 'motto', true);
+	add_meta_box('motto_meta', 'Motto', 'motto_func', 'books', 'normal', 'default');
+
+	$options = ['Travelling', 'Gaming', 'WorkingOut'];
+	?>
+	<label for="author">Author:</label>
+	<input type="text" name="author" value="<?php echo esc_attr($author)?>"> <br>
+	<label>Gender</label><br>
+	<input type="radio" id="Male" name="gender" value="Male" <?php echo checked("Male", $gender, false); ?> >
+	<label for="Male">Male</label><br>
+	<input type="radio" id="Female" name="gender" value="Female" <?php echo checked("Female", $gender, false); ?> >
+	<label for="Female">Female</label><br>
+	<label>	Hobbies	</label><br>
+	<?php foreach ($options as $option): ?>
+        <input type="checkbox" id="<?php echo esc_attr($option); ?>" name="hobbies[]" value="<?php echo esc_attr($option); ?>" <?php checked(in_array($option, (array) $hobbies)); ?>>
+        <label for="<?php echo esc_attr($option); ?>"><?php echo esc_html($option); ?></label><br>
+    <?php endforeach; ?>
+	<label for="motto">Motto:</label>
+	<input type="text" id="motto" name="motto"  maxlength="50" size="30" value="<?php echo esc_attr($motto); ?>"  />
+	<?php
+	
+}
+
+function save_books_meta_data($post_id){
+	if(! isset($_POST['books_meta_box_nonce']) || !wp_verify_nonce($_POST['books_meta_box_nonce'], 'books_meta_box')){
+		return;
+	}
+	
+	if (isset($_POST['author'])){
+		update_post_meta($post_id, 'author', sanitize_text_field($_POST['author']));
+	}
+	if (isset($_POST['gender'])){
+		update_post_meta($post_id, 'gender', sanitize_text_field($_POST['gender']));
+	}
+	if (isset($_POST['hobbies'])) {
+    // Loop through and sanitize each hobby
+	$hobbies = [];
+
+    foreach ($_POST['hobbies'] as $hobby) {
+        $hobbies[] = sanitize_text_field($hobby);
+    }
+    update_post_meta($post_id, 'hobbies', $hobbies);
+}
+	if (isset($_POST['motto'])){
+		update_post_meta($post_id, 'motto', sanitize_text_field($_POST['motto']));
+	}
+}
+add_action('save_post', 'save_books_meta_data');
+
+function create_books_taxonomies(){
+	register_taxonomy('book_category', 'books', array(
+	'labels' => array(
+		'name' => __('Book Categories'),
+		'singular_name' => __('Book Category')
+	),
+	'hierarchical' => false,
+	'rewrite' => array('slug' => 'book_category')
+	));
+	register_taxonomy('book_tag', 'books', array(
+	'labels' => array(
+		'name' => __('Book Tags'),
+		'singular_name' => __('Book Tag')
+	),
+	'hierarchical' => false,
+	'rewrite' => array('slug' => 'book_tag')
+	));
+}
+add_action('init', 'create_books_taxonomies');
+
+function display_books_shortcode(){
+	$args = array (
+	'post_type' => 'books',
+	'posts_per_page' => -1,
+	);
+	$query = new WP_Query($args);
+	
+	if ($query->have_posts()){
+		$output = '<div class="books-list">'; 
+        
+        
+        while ($query->have_posts()) {
+            $query->the_post(); 
+            
+            
+            $author = get_post_meta(get_the_ID(), 'author', true);
+            $gender = get_post_meta(get_the_ID(), 'gender', true);
+            $hobbies = get_post_meta(get_the_ID(), 'hobbies', true);
+            $motto = get_post_meta(get_the_ID(), 'motto', true);
+            $categories = get_the_terms(get_the_ID(), 'book_category'); 
+            $tags = get_the_terms(get_the_ID(), 'book_tag'); 
+
+            $output .= '<div class="book-item">';
+            $output .= '<h2>' . get_the_title() . '</h2>'; 
+            
+            if (has_post_thumbnail()) {
+                $output .= '<div class="book-thumbnail">' . get_the_post_thumbnail(get_the_ID(), 'full') . '</div>';
+            }
+			else {
+				$output .= '<p>No featured image available.</p>'; // Debug message
+			}
+              // Display categories
+            if ($categories && !is_wp_error($categories)) {
+                $category_names = wp_list_pluck($categories, 'name');
+                $output .= '<p>Category: ' . esc_html(implode(', ', $category_names)) . '</p>';
+            }
+           
+            // Display tags
+            if ($tags && !is_wp_error($tags)) {
+                $tag_names = wp_list_pluck($tags, 'name');
+                $output .= '<p>Tags: ' . esc_html(implode(', ', $tag_names)) . '</p>';
+            }
+			
+         	
+            $output .= '<p>Author: ' . esc_html($author) . '</p>';
+            $output .= '<p>Gender: ' . esc_html($gender) . '</p>';
+            $output .= '<p>Hobbies: ' . esc_html(implode(', ', (array)$hobbies)) . '</p>';
+            $output .= '<p>Motto: ' . esc_html($motto) . '</p>';
+            $output .= '</div>'; 
+        }
+        
+        $output .= '</div>';
+        
+
+        wp_reset_postdata();
+        
+        return $output;
+    } else {
+        return 'No books found.';
+    }
+}
+add_shortcode('display-books', 'display_books_shortcode');
