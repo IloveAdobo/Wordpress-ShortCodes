@@ -1,0 +1,54 @@
+<?php
+function oldbooks() {
+    ob_start();
+    $args = array(
+        'post_type' => 'post',
+        'posts_per_page' => '-1'
+    );
+
+    // The Query.
+    $the_query = new WP_Query($args);
+    $container = ''; // Initialize the container
+
+    // The Loop.
+    if ($the_query->have_posts()) {
+        while ($the_query->have_posts()) {
+            $the_query->the_post();
+            
+            $author = get_post_meta(get_the_ID(), 'author', true);
+            $gender = get_post_meta(get_the_ID(), 'gender', true);
+            $hobbies = get_post_meta(get_the_ID(), 'hobbies', true);
+            $motto = get_post_meta(get_the_ID(), 'motto', true);
+            
+            // Ensure hobbies is an array
+            if (!is_array($hobbies)) {
+                $hobbies = array($hobbies);
+            }
+
+            $container .= '<div class="bookitem" style="margin-bottom: 20px;">';
+            $container .= '<div>' . get_the_post_thumbnail(get_the_ID(), array(200, 200)) . '</div>';
+            $container .= '<div>' . get_the_title() . '</div>';
+            $container .= '<div>' . get_the_date() . '</div>'; 
+            $container .= '<div>' . get_the_excerpt() . '</div>';
+            $container .= '<div><strong>Author:</strong> ' . esc_html($author) . '</div>'; // Author
+            $container .= '<div><strong>Gender:</strong> ' . esc_html($gender) . '</div>'; // Gender
+            
+            // Display hobbies as a comma-separated list
+            if ($hobbies) {
+                $container .= '<div><strong>Hobbies:</strong> ' . esc_html(implode(', ', $hobbies)) . '</div>'; // Hobbies
+            } else {
+                $container .= '<div><strong>Hobbies:</strong> None</div>'; // Hobbies fallback
+            }
+
+            $container .= '<div><strong>Motto:</strong> ' . esc_html($motto) . '</div>'; // Motto
+            $container .= '</div>';
+        }
+        wp_reset_postdata();    
+    } else {
+        $container .= '<div>' . esc_html__('No posts matched your criteria.') . '</div>';
+    }
+    
+    // Restore original Post Data.
+    return $container;
+}
+add_shortcode('display-post', 'oldbooks');
