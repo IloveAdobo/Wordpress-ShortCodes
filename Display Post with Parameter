@@ -1,0 +1,102 @@
+<?php
+function booksnew($atts) {
+    
+    ob_start();
+    
+    
+    $a = shortcode_atts(array(
+        'num' => '', 
+    ), $atts);
+    
+   
+    $args = array(
+        'post_type' => 'post', 
+        'posts_per_page' => intval($a['num']), 
+    );
+    
+    
+    $the_query = new WP_Query($args);
+
+    
+    $container = '<div class="post-container">';
+
+    
+    if ($the_query->have_posts()) {
+     
+        while ($the_query->have_posts()) {
+            $the_query->the_post(); 
+            
+            
+            $container .= '<div class="post-item">';
+            $container .= '<div>' . get_the_post_thumbnail(get_the_ID(), array(100, 100)) . '</div>'; 
+            $container .= '<div>' . esc_html(get_the_title()) . '</div>'; 
+            $container .= '<div>' . get_the_date() . '</div>'; 
+            $container .= '<div>' . get_the_excerpt() . '</div>'; 
+            $container .= '</div>'; 
+        }
+
+        $container .= '</div>'; 
+    } else {
+        $container .= '<p>' . esc_html__('Sorry, no posts matched your criteria.') . '</p>';
+    }
+
+   
+    wp_reset_postdata();
+
+   
+    return $container;
+}
+
+
+add_shortcode('display-post-wparam', 'booksnew');
+
+function booksnewpost($atts) {
+    
+    ob_start();
+    
+    
+    $a = shortcode_atts(array(
+        'num' => '', 
+    ), $atts);
+    
+   
+    $args = array(
+        'post_type' => 'books', 
+        'posts_per_page' => intval($a['num']), 
+    );
+    
+    
+    $the_query = new WP_Query($args);
+
+    
+    $container = '<div class="post-container">';
+
+    
+    if ($the_query->have_posts()) {
+     
+        while ($the_query->have_posts()) {
+            $the_query->the_post(); 
+            
+            
+            $container .= '<div class="post-item">';
+            $container .= '<div>' . get_the_post_thumbnail(get_the_ID(), array(100, 100)) . '</div>'; 
+            $container .= '<div>' . esc_html(get_the_title()) . '</div>'; 
+            $container .= '<div>' . get_the_date() . '</div>'; 
+            $container .= '<div>' . get_the_excerpt() . '</div>'; 
+            $container .= '</div>'; 
+        }
+
+        $container .= '</div>'; 
+    } else {
+        $container .= '<p>' . esc_html__('Sorry, no posts matched your criteria.') . '</p>';
+    }
+
+   
+    wp_reset_postdata();
+
+   
+    return $container;
+}
+
+
+add_shortcode('display-book-wparam', 'booksnewpost');
